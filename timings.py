@@ -12,7 +12,8 @@ from trino.dbapi import connect
 
 # HOST = "localhost"
 # DB_PORT, FLUKE_PORT = 7700, 7701
-HOST = ""
+# HOST = "52.191.100.80"
+HOST = input("Enter DB host: ")
 DB_PORT, FLUKE_PORT = 80, 80
 
 BASE_URL = "http://" + HOST
@@ -24,6 +25,7 @@ USERNAME = "importer"
 BMID = input("Enter the identifier for this benchmark: ")
 
 UI_VIEWS_BUTTON_ID = "headlessui-listbox-button-2"
+UI_CHARTS_DIV_CLASS = "space-y-8"
 VIEWS_DICT = {24: "Method Injection Attacks", 0: "All API Calls", 2: "Completed Calls"}
 
 
@@ -57,10 +59,12 @@ else:
     browser.close()
     browser.switch_to.window(apix)
 
-sleep(20)  # manually wait for the UI to load for the first time
+# sleep(20)  # manually wait for the UI to load for the first time
+# Wait for charts to load
+WebDriverWait(browser, 30).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME, UI_CHARTS_DIV_CLASS)))
 
 # Perform COUNT(*) query using the trino API
-# print("START TRINO COUNT")
+print("Performing trino count query...")
 conn = connect(host=HOST,port=DB_PORT,user=USERNAME,catalog="resurface",schema="data")
 cur = conn.cursor()
 
@@ -91,6 +95,7 @@ for i, name in VIEWS_DICT.items():
     views_dropdown_list = browser.find_element(By.TAG_NAME, "ul")
     views = views_dropdown_list.find_elements(By.TAG_NAME, "li")
     views[i].click()
+    WebDriverWait(browser, 30).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME, UI_CHARTS_DIV_CLASS)))
     sleep(10)  # wait for count query manually
     timings = browser.execute_script("return window.performance.getEntries();")
     query_timings = list(filter(lambda x: ('query' in x['name']) and (x not in old_query_timings), timings))
